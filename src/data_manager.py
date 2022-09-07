@@ -2,6 +2,7 @@ import os
 import json
 import requests
 import numpy as np
+import pandas as pd
 
 def grab_daily_data(company_label, api_key):
     """ Grabs daily stock data of a specificed company_label.
@@ -36,8 +37,8 @@ def get_stock_data(target, api_key, ohcl='4. close'):
         They are sorted in chronological order.
         Optional keyword argument ohcl represents open, high, low, or close
         daily prices. """
-    if ohcl not in ['1. open', '2. high', '3. low', '4. close']:
-        raise TypeError('ohcl argument must be "1. open", "2. high", "3. low", or "4. close"')
+    if ohcl not in ['1. open', '2. high', '3. low', '4. close', '5. all']:
+        raise TypeError('ohcl argument must be "1. open", "2. high", "3. low", or "4. close", or "5. all')
     if isinstance(target, str):
         target = grab_daily_data(target, api_key)
     stock_data = { 'Dates': [], 'Prices': [] }
@@ -74,6 +75,24 @@ def preprocess_data_cnn_1d(target, api_key):
     x, y, time_series = preprocess_data(target, api_key)
     x = np.reshape(x, (len(x), 365, 1))
     return x, y, time_series
+
+def preprocess_data_rnn(target, api_key, lookback=10):
+    stock_data = grab_daily_data(target, api_key)
+    df = pd.DataFrame.from_dict(stock_data['Time Series (Daily)'], orient='index')
+    df = df.drop(labels='5. volume', axis=1)
+    df = df.sort_index()
+    df['Target'] = df['4. close'].shift(-1)
+    df = df.dropna()
+    x_arr = df.drop(labels='Target', axis=1).to_numpy().astype(float)
+    y_arr = df['Target'].to_numpy().astype(float)
+    x = []
+    y = []
+    for i in range(lookback, len(x_arr) + 1):
+        x.append(x_arr[i-lookback: i])
+        y.append(y_arr[i - 1])
+    y = np.reshape(y, (len(y), 1))
+    return x, y
+
 
 def preprocess_data_multiple(symbols, api_key):
     x = []
