@@ -3,6 +3,7 @@ import json
 import requests
 import numpy as np
 import pandas as pd
+from sklearn.preprocessing import MinMaxScaler
 
 def grab_daily_data(company_label, api_key):
     """ Grabs daily stock data of a specificed company_label.
@@ -81,8 +82,14 @@ def preprocess_data_rnn(target, api_key, lookback=10):
     df = pd.DataFrame.from_dict(stock_data['Time Series (Daily)'], orient='index')
     df = df.drop(labels='5. volume', axis=1)
     df = df.sort_index()
-    df['Target'] = df['4. close'].shift(-1)
+    df['Target'] = df['4. close'].astype(float).shift(-1)
     df = df.dropna()
+
+    scaler = MinMaxScaler()
+    scaler = scaler.fit(df)
+    arr = scaler.transform(df)
+    df = pd.DataFrame(arr, columns=['open', 'high', 'low', 'close', 'Target'])
+
     x_arr = df.drop(labels='Target', axis=1).to_numpy().astype(float)
     y_arr = df['Target'].to_numpy().astype(float)
     x = []
