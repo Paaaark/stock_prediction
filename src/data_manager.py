@@ -70,6 +70,11 @@ def preprocess_data(target, api_key, start=None, end=None):
         time_series.append(stock_data['Dates'][i+365])
     return x, y, time_series
 
+def preprocess_data_cnn_1d(target, api_key):
+    x, y, time_series = preprocess_data(target, api_key)
+    x = np.reshape(x, (len(x), 365, 1))
+    return x, y, time_series
+
 def preprocess_data_multiple(symbols, api_key):
     x = []
     y = []
